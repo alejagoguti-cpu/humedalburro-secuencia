@@ -1,0 +1,396 @@
+/* Red de interacciones bióticas sobre el CORTE DINÁMICO.
+   Con respiración orgánica NOTORIA y fluida de la red, encendido/escalado al pasar el cursor,
+   Modo Oscuro NOCTURNO COMPLETO (fondo negro/nocturno real con mix-blend-mode: multiply),
+   y Pato Canadiense chiquitito que desciende al agua y nada junto al otro patito. */
+(function () {
+  "use strict";
+  const NS = "http://www.w3.org/2000/svg";
+  const COL = { verde: "#22a447", amarillo: "#d9a406", rojo: "#e03a3e", azul: "#2f6fe0", turquesa: "#0fb5b0" };
+  const TXT = { ave: "#b98a00", dep: "#d62f35", inv: "#c42eb4", anf: "#2a6fd6", flora: "#16883b", micro: "#0a8f9c" };
+  const MULT = { urapan: 1.25, capuli: 1.15, sauce: 1.1, enea: 1.05, garza: 1.1, escarabajos: 0.95, mirla: 1.0 };
+  const NODOS = [
+    { id: "mirla", t: "Mirla común", s: "Turdus fuscater", cat: "ave", img: "assets/cx_mirla.png", kind: "cut", w: 240, h: 214, pos: [0.1654, 0.5242] },
+    { id: "chamon", t: "Chamón", s: "Molothrus bonariensis", cat: "ave", img: "assets/cx_chamon.png", kind: "cut", w: 233, h: 240, pos: [0.2882, 0.3979] },
+    { id: "tingua_azul", t: "Tingua azul", s: "Porphyrio martinica", cat: "ave", img: "assets/tingua.png", kind: "cut", w: 166, h: 200, pos: [0.2841, 0.6614] },
+    { id: "tingua_bogotana", t: "Tingua bogotana", s: "Rallus semiplumbeus", cat: "ave", img: "assets/cx_tingua_bogotana.png", kind: "cut", w: 260, h: 165, pos: [0.4303, 0.6781] },
+    { id: "monjita", t: "Monjita", s: "Chrysomus icterocephalus", cat: "ave", img: "assets/cx_monjita.png", kind: "cut", w: 195, h: 260, pos: [0.7635, 0.5753] },
+    { id: "cucarachero", t: "Cucarachero de pantano", s: "Cistothorus apolinari", cat: "ave", img: "assets/cx_cucarachero.png", kind: "cut", w: 170, h: 240, pos: [0.545, 0.4464] },
+    { id: "garza", t: "Garza real", s: "Ardea alba", cat: "ave", img: "assets/cx_garza.png", kind: "cut", w: 148, h: 240, pos: [0.379, 0.33] },
+    { id: "perros_gatos", t: "Perros y gatos asilvestrados", s: "", cat: "dep", img: "assets/cx_perro.png", kind: "cut", w: 130, h: 260, pos: [0.2417, 0.775] },
+    { id: "libelulas", t: "Libélulas", s: "Odonata", cat: "inv", img: "assets/cx_libelula.png", kind: "cut", w: 240, h: 216, pos: [0.4907, 0.775], anim: "alas" },
+    { id: "mariposas", t: "Mariposas y colibríes", s: "Lepidoptera · Trochilidae", cat: "inv", img: "assets/cx_colibri.png", kind: "cut", w: 260, h: 166, pos: [0.3568, 0.775] },
+    { id: "escarabajos", t: "Escarabajos coprófagos", s: "descomponedores", cat: "inv", img: "assets/cx_escarabajo.png", kind: "cut", w: 260, h: 190, pos: [0.6839, 0.6571] },
+    { id: "rana", t: "Rana sabanera", s: "Dendropsophus labialis", cat: "anf", img: "assets/cx_rana.png", kind: "cut", w: 240, h: 153, pos: [0.4984, 0.5543] },
+    { id: "enea", t: "Enea / Junco", s: "Typha latifolia", cat: "flora", img: "assets/cx_enea.png", kind: "cut", w: 215, h: 240, pos: [0.6045, 0.775] },
+    { id: "capuli", t: "Capulí", s: "Prunus serotina", cat: "flora", img: "assets/cx_capuli.png", kind: "cut", w: 214, h: 240, pos: [0.4105, 0.45] },
+    { id: "sauco", t: "Saúco", s: "Sambucus nigra", cat: "flora", img: "assets/cx_sauco.png", kind: "cut", w: 240, h: 234, pos: [0.14, 0.647] },
+    { id: "urapan", t: "Urapán", s: "Fraxinus chinensis", cat: "flora", img: "assets/cx_urapan.png", kind: "cut", w: 240, h: 240, pos: [0.5017, 0.33] },
+    { id: "sauce", t: "Sauce llorón", s: "Salix humboldtiana", cat: "flora", img: "assets/cx_sauce.png", kind: "cut", w: 150, h: 260, pos: [0.14, 0.775] },
+    { id: "chilco", t: "Chilco", s: "Baccharis bogotensis", cat: "flora", img: "assets/cx_chilco.png", kind: "cut", w: 240, h: 156, pos: [0.2761, 0.5309] },
+    { id: "buchon", t: "Buchón de agua", s: "Eichhornia crassipes", cat: "flora", img: "assets/cx_buchon.png", kind: "circle", w: 240, h: 240, pos: [0.6419, 0.5105] },
+    { id: "nutrientes", t: "Exceso de nutrientes (N, P)", s: "", cat: "flora", img: "assets/cx_nutrientes.png", kind: "circle", w: 240, h: 240, pos: [0.6447, 0.3523] },
+    { id: "fitoplancton", t: "Fitoplancton y lenteja de agua", s: "Lemna gibba", cat: "micro", img: "assets/cx_fitoplancton.png", kind: "circle", w: 240, h: 240, pos: [0.7354, 0.775] },
+    { id: "lixiviados", t: "Lixiviados y materia orgánica", s: "DQO / DBO", cat: "micro", img: "assets/cx_lixiviados.png", kind: "circle", w: 240, h: 240, pos: [0.86, 0.6152] },
+    { id: "anoxia", t: "Disminución de oxígeno", s: "anoxia · OD ≈ 0 mg/L", cat: "micro", img: "assets/cx_anoxia.png", kind: "circle", w: 240, h: 240, pos: [0.5659, 0.6433] },
+    { id: "bacterias", t: "Bacterias anaerobias", s: "ácido sulfhídrico (H₂S)", cat: "micro", img: "assets/cx_bacterias.png", kind: "circle", w: 240, h: 240, pos: [0.3795, 0.573] },
+    { id: "hongos", t: "Hongos y materia orgánica del suelo", s: "", cat: "micro", img: "assets/cx_hongos.png", kind: "circle", w: 240, h: 240, pos: [0.86, 0.775] }
+  ];
+  const ENLACES = [
+    ["mirla", "urapan", "verde", "Nidificación (anida en la copa alta)"],
+    ["mirla", "capuli", "verde", "Frugivoría / dispersión de semillas"],
+    ["mirla", "sauco", "verde", "Alimentación y refugio"],
+    ["chamon", "mirla", "rojo", "Parasitismo de nido"],
+    ["tingua_azul", "enea", "verde", "Nidificación y refugio en el juncal"],
+    ["tingua_azul", "libelulas", "amarillo", "Depredación de invertebrados"],
+    ["perros_gatos", "tingua_azul", "rojo", "Depredación exótica: nidos terrestres y huevos"],
+    ["tingua_bogotana", "enea", "verde", "Nidificación exclusiva en juncal denso"],
+    ["perros_gatos", "tingua_bogotana", "rojo", "Depredación de nidos terrestres y huevos"],
+    ["monjita", "enea", "verde", "Nidificación y posadero"],
+    ["cucarachero", "enea", "verde", "Refugio y hábitat exclusivo"],
+    ["chamon", "cucarachero", "rojo", "Parasitismo de nido"],
+    ["garza", "rana", "amarillo", "Depredación"],
+    ["garza", "libelulas", "amarillo", "Depredación de larvas acuáticas"],
+    ["libelulas", "fitoplancton", "azul", "Alimentación en fase acuática"],
+    ["mariposas", "chilco", "verde", "Polinización / visita floral"],
+    ["mariposas", "sauco", "verde", "Polinización / visita floral"],
+    ["escarabajos", "hongos", "turquesa", "Descomposición de biomasa"],
+    ["rana", "libelulas", "azul", "Consumo de insectos"],
+    ["anoxia", "rana", "rojo", "Mortalidad / asfixia hídrica · estrés metabólico"],
+    ["buchon", "nutrientes", "turquesa", "Absorción y proliferación masiva"],
+    ["buchon", "anoxia", "turquesa", "Bloqueo de luz y descomposición en el fondo"],
+    ["nutrientes", "buchon", "verde", "Eutrofización hídrica"],
+    ["nutrientes", "fitoplancton", "verde", "Eutrofización hídrica"],
+    ["lixiviados", "nutrientes", "turquesa", "Enriquecimiento orgánico"],
+    ["anoxia", "bacterias", "turquesa", "Mal olor y putrefacción en fondo anóxico"]
+  ];
+
+  const POS_FIJAS = {};
+  function el(tag, attrs) { const e = document.createElementNS(NS, tag); if (attrs) Object.keys(attrs).forEach(k => e.setAttribute(k, attrs[k])); return e; }
+  function wrap(txt, max) {
+    const words = txt.split(" "), lines = []; let cur = "";
+    words.forEach(w => { if ((cur + " " + w).trim().length > max && cur) { lines.push(cur); cur = w; } else cur = (cur + " " + w).trim(); });
+    if (cur) lines.push(cur); return lines;
+  }
+
+  window.crearConectografiaCorte = function (cfg) {
+    const host = cfg.host;
+    if (!host) return null;
+    const KEY = "cx_pos_dyn_v2";
+    const pos = {};
+    NODOS.forEach(n => { pos[n.id] = (POS_FIJAS[n.id] || n.pos).slice(); });
+    try { const s = JSON.parse(sessionStorage.getItem(KEY) || "null"); if (s) Object.keys(s).forEach(k => { if (pos[k]) pos[k] = s[k]; }); } catch (e) {}
+    
+    if (!document.getElementById("cxEstilos")) {
+      const st = document.createElement("style"); st.id = "cxEstilos";
+      st.textContent = `
+        .cx-alas { transform-box: fill-box; transform-origin: 50% 65%; animation: cxAlas .12s ease-in-out infinite alternate; }
+        @keyframes cxAlas { from { transform: scale(1,1); } to { transform: scale(1,.76) skewX(-2deg); } }
+        .cx-txt { paint-order: stroke; stroke: rgba(255,255,255,.95); stroke-width: 3.5px; stroke-linejoin: round; font-family: 'Segoe UI', sans-serif; font-weight: 700; transition: transform .25s ease; }
+        #dynamicSectionOverlay.cx-dark { background: #070b14 !important; }
+        #dynamicSectionOverlay.cx-dark #dynSecBaseImg { mix-blend-mode: multiply; filter: brightness(0.85) contrast(1.15); }
+        #dynamicSectionOverlay.cx-dark .cx-txt { stroke: #070b14; fill: #ffffff; }
+        #dynamicSectionOverlay.cx-dark .cx-ui-panel { background: rgba(15, 23, 42, 0.94) !important; border-color: rgba(255,255,255,0.18) !important; color: #f8fafc !important; }
+        #dynamicSectionOverlay.cx-dark .cx-ui-panel span { color: #cbd5e1 !important; }
+        .cx-node-group { transition: transform .2s cubic-bezier(0.175, 0.885, 0.32, 1.275), filter .25s ease; cursor: grab; pointer-events: all; }
+        .cx-node-group:hover { filter: drop-shadow(0 0 14px rgba(42, 200, 189, 0.95)); }
+        .cx-line-active { stroke-dasharray: 6 3; animation: cxDash 0.8s linear infinite; }
+        @keyframes cxDash { to { stroke-dashoffset: -18; } }
+      `;
+      document.head.appendChild(st);
+    }
+
+    // Limpiar previo SVG y panel UI si existen
+    host.querySelectorAll(".cx-red").forEach(e => e.remove());
+    if (cfg.uiParent) cfg.uiParent.querySelectorAll(".cx-ui-panel").forEach(e => e.remove());
+
+    const svg = el("svg", { class: "cx-red" });
+    svg.style.cssText = "position:absolute; inset:0; width:100%; height:100%; z-index:10; pointer-events:none; overflow:visible;";
+    const defs = el("defs");
+    Object.keys(COL).forEach(k => { const m = el("marker", { id: "cxFlecha-" + k, viewBox: "0 0 10 10", refX: "9", refY: "5", markerWidth: "6", markerHeight: "6", orient: "auto" }); m.appendChild(el("path", { d: "M0,1 L10,5 L0,9 z", fill: COL[k] })); defs.appendChild(m); });
+    svg.appendChild(defs);
+    const gLines = el("g"), gNodes = el("g"), gFaunaAnim = el("g");
+    svg.appendChild(gLines); svg.appendChild(gFaunaAnim); svg.appendChild(gNodes); host.appendChild(svg);
+    const byId = {}; NODOS.forEach(n => { byId[n.id] = n; });
+
+    // Enlaces
+    const lineEls = ENLACES.map(([a, b, c, txt]) => {
+      const ln = el("line", { stroke: COL[c], "stroke-linecap": "round", "marker-end": "url(#cxFlecha-" + c + ")" });
+      const t = el("title"); t.textContent = byId[a].t + " → " + byId[b].t + ": " + txt; ln.appendChild(t);
+      gLines.appendChild(ln); return { a, b, c, ln, recip: ENLACES.some(x => x[0] === b && x[1] === a) };
+    });
+
+    // Nodos
+    let drag = null, hover = null;
+    const nodeEls = {};
+    const lastP = {};
+    const currP = {};
+
+    NODOS.forEach((n, idx) => {
+      const g = el("g", { class: "cx-node-group" });
+      const t = el("title"); t.textContent = n.t + (n.s ? " (" + n.s + ")" : ""); g.appendChild(t);
+      const ring = n.kind === "circle" ? el("circle", { fill: "none", stroke: TXT[n.cat], "stroke-width": "2.2" }) : null;
+      if (ring) g.appendChild(ring);
+      const im = el("image", { href: n.img, preserveAspectRatio: "xMidYMid meet" });
+      if (n.anim === "alas") im.setAttribute("class", "cx-alas");
+      g.appendChild(im);
+      const txt = el("text", { class: "cx-txt", "text-anchor": "middle", fill: TXT[n.cat] });
+      const lines = wrap(n.t, 17); const tsp = [];
+      lines.forEach(l => { const ts = el("tspan", { "text-anchor": "middle" }); ts.textContent = l; txt.appendChild(ts); tsp.push(ts); });
+      g.appendChild(txt);
+      gNodes.appendChild(g);
+      nodeEls[n.id] = { g, im, ring, txt, tsp, w: 0, h: 0, phase: idx * 0.75 };
+
+      g.addEventListener("pointerdown", e => { if (e.button !== 0) return; e.preventDefault(); e.stopPropagation(); drag = n.id; g.setPointerCapture(e.pointerId); g.style.cursor = "grabbing"; });
+      g.addEventListener("pointermove", e => {
+        if (drag !== n.id) return;
+        const r = svg.getBoundingClientRect(), b = cfg.getBox();
+        if (b && b.w > 0) {
+          pos[n.id] = [Math.min(1, Math.max(0, (e.clientX - r.left - b.l) / b.w)), Math.min(1, Math.max(0, (e.clientY - r.top - b.t) / b.h))];
+          place(b);
+        }
+      });
+      const end = e => { if (drag !== n.id) return; drag = null; g.style.cursor = "grab"; try { sessionStorage.setItem(KEY, JSON.stringify(pos)); } catch (er) {} };
+      g.addEventListener("pointerup", end); g.addEventListener("pointercancel", end);
+
+      g.addEventListener("pointerenter", () => {
+        hover = n.id;
+        const cp = currP[n.id] || lastP[n.id];
+        if (cp) g.setAttribute("transform", `translate(${cp.x.toFixed(1)}, ${cp.y.toFixed(1)}) scale(1.32)`);
+        resalta();
+      });
+      g.addEventListener("pointerleave", () => {
+        hover = null;
+        const cp = currP[n.id] || lastP[n.id];
+        if (cp) g.setAttribute("transform", `translate(${cp.x.toFixed(1)}, ${cp.y.toFixed(1)}) scale(1)`);
+        resalta();
+      });
+    });
+
+    function resalta() {
+      lineEls.forEach(l => {
+        const on = hover && (l.a === hover || l.b === hover);
+        l.ln.style.opacity = hover ? (on ? "1" : "0.15") : "0.85";
+        l.ln.setAttribute("stroke-width", on ? String(l.sw * 2.2) : String(l.sw));
+        if (on) l.ln.classList.add("cx-line-active"); else l.ln.classList.remove("cx-line-active");
+      });
+      Object.keys(nodeEls).forEach(k => {
+        const rel = !hover || k === hover || lineEls.some(l => (l.a === hover && l.b === k) || (l.b === hover && l.a === k));
+        nodeEls[k].g.style.opacity = rel ? "1" : "0.32";
+      });
+    }
+
+    function size(n, b) {
+      const base = b.w * 0.037 * (MULT[n.id] || 1);
+      if (n.kind === "circle") return [base * 0.95, base * 0.95];
+      const k = base / Math.max(n.w, n.h); return [n.w * k, n.h * k];
+    }
+
+    function place(b) {
+      if (!b || !b.w || b.w <= 0) return;
+      const fs = Math.max(9, b.w * 0.0062), sw = Math.max(1.4, b.w * 0.0011);
+      NODOS.forEach(n => {
+        const [w, h] = size(n, b), e = nodeEls[n.id], x = b.l + pos[n.id][0] * b.w, y = b.t + pos[n.id][1] * b.h;
+        lastP[n.id] = { x, y, r: n.kind === "circle" ? w / 2 : Math.hypot(w, h) * 0.30 + 3 };
+        if (!currP[n.id]) currP[n.id] = { x, y, r: lastP[n.id].r };
+        if (hover !== n.id && drag !== n.id) {
+          e.g.setAttribute("transform", "translate(" + x.toFixed(1) + "," + y.toFixed(1) + ")");
+        }
+        if (e.w !== w) {
+          e.w = w; e.h = h; e.im.setAttribute("x", (-w / 2).toFixed(1)); e.im.setAttribute("y", (-h / 2).toFixed(1)); e.im.setAttribute("width", w.toFixed(1)); e.im.setAttribute("height", h.toFixed(1));
+          if (e.ring) { e.ring.setAttribute("r", (w / 2).toFixed(1)); }
+          e.txt.setAttribute("font-size", fs.toFixed(1)); e.txt.setAttribute("y", (h / 2 + fs + 3).toFixed(1));
+          e.tsp.forEach((ts, i) => { ts.setAttribute("x", "0"); ts.setAttribute("dy", i ? (fs * 1.12).toFixed(1) : "0"); });
+        }
+      });
+      updateLines(sw);
+    }
+
+    function updateLines(sw) {
+      const strokeW = sw || Math.max(1.4, (cfg.getBox() ? cfg.getBox().w : 1000) * 0.0011);
+      lineEls.forEach(l => {
+        const A = currP[l.a] || lastP[l.a], B = currP[l.b] || lastP[l.b]; if (!A || !B) return;
+        let dx = B.x - A.x, dy = B.y - A.y; const len = Math.hypot(dx, dy) || 1; dx /= len; dy /= len;
+        const off = l.recip ? (l.a < l.b ? 5 : -5) : 0, nx = -dy * off, ny = dx * off;
+        l.ln.setAttribute("x1", (A.x + dx * A.r + nx).toFixed(1)); l.ln.setAttribute("y1", (A.y + dy * A.r + ny).toFixed(1));
+        l.ln.setAttribute("x2", (B.x - dx * (B.r + 3) + nx).toFixed(1)); l.ln.setAttribute("y2", (B.y - dy * (B.r + 3) + ny).toFixed(1));
+        l.sw = strokeW; if (!hover) l.ln.setAttribute("stroke-width", String(strokeW)); if (!hover) l.ln.style.opacity = "0.85";
+      });
+    }
+
+    // ---- Animación de Fauna Viva en el Corte (Garza, Tinguas y Pato Canadiense) ----
+    const garzaGroup = el("g", { style: "pointer-events:none;" });
+    const garzaImg = el("image", { href: "assets/vuelo_garza_1.png", width: "70", height: "70" });
+    const pezPescado = el("image", { href: "assets/pez_guppy.png", width: "24", height: "16", style: "display:none;" });
+    garzaGroup.appendChild(garzaImg); garzaGroup.appendChild(pezPescado); gFaunaAnim.appendChild(garzaGroup);
+
+    const tinguaImg = el("image", { href: "assets/vuelo_tingua_1.png", width: "45", height: "45", style: "pointer-events:none;" });
+    gFaunaAnim.appendChild(tinguaImg);
+
+    // Pato Canadiense chiquitito (34x34) que desciende hasta el agua al lado del otro patito
+    const patoImg = el("image", { href: "assets/vuelo_pato_1.png", width: "34", height: "34", style: "pointer-events:none;" });
+    gFaunaAnim.appendChild(patoImg);
+
+    let animTime = 0;
+    function loopFaunaAnim(t) {
+      animTime += 0.018;
+      const b = cfg.getBox();
+      if (b && b.w > 0) {
+        if (!lastP[NODOS[0].id]) {
+          place(b);
+        }
+
+        // 1. RESPIRACIÓN ORGÁNICA NOTORIA Y CONTINUA EN TODA LA RED
+        NODOS.forEach(n => {
+          const lp = lastP[n.id]; if (!lp) return;
+          const phase = nodeEls[n.id].phase;
+          // Amplitud de oscilación notoria (12px - 14px) con doble frecuencia
+          const ox = Math.sin(animTime * 1.6 + phase) * 12.0 + Math.cos(animTime * 0.85 + phase) * 4.5;
+          const oy = Math.cos(animTime * 1.35 + phase) * 11.0 + Math.sin(animTime * 0.95 + phase) * 4.5;
+          const cx = lp.x + ox, cy = lp.y + oy;
+          currP[n.id] = { x: cx, y: cy, r: lp.r };
+          if (drag !== n.id && hover !== n.id) {
+            nodeEls[n.id].g.setAttribute("transform", `translate(${cx.toFixed(1)}, ${cy.toFixed(1)})`);
+          }
+        });
+        updateLines();
+
+        // 2. Garza volando, pescando un pez en el agua y elevándose
+        const cycleG = (animTime * 0.22) % 1;
+        const gWing = Math.floor(animTime * 9) % 2 === 0 ? "assets/vuelo_garza_1.png" : "assets/vuelo_garza_2.png";
+        garzaImg.setAttribute("href", gWing);
+
+        let gx = 0, gy = 0, hasFish = false;
+        if (cycleG < 0.45) {
+          const progress = cycleG / 0.45;
+          gx = b.l + b.w * (-0.1 + progress * 0.55);
+          gy = b.t + b.h * (0.2 + Math.pow(progress, 1.8) * 0.58);
+          hasFish = progress > 0.92;
+        } else if (cycleG < 0.85) {
+          const progress = (cycleG - 0.45) / 0.40;
+          gx = b.l + b.w * (0.45 + progress * 0.65);
+          gy = b.t + b.h * (0.78 - Math.pow(progress, 0.7) * 0.58);
+          hasFish = true;
+        } else {
+          gx = -200; gy = -200;
+        }
+        garzaGroup.setAttribute("transform", `translate(${gx.toFixed(1)}, ${gy.toFixed(1)})`);
+        pezPescado.style.display = hasFish ? "block" : "none";
+        if (hasFish) {
+          pezPescado.setAttribute("x", "45");
+          pezPescado.setAttribute("y", "42");
+        }
+
+        // 3. Tinguas nadando y aleteando suavemente cerca del juncal
+        const cycleT = (animTime * 0.35) % 1;
+        const tFrame = Math.floor(animTime * 6) % 3 + 1;
+        tinguaImg.setAttribute("href", `assets/vuelo_tingua_${tFrame}.png`);
+        const tx = b.l + b.w * (0.28 + Math.sin(cycleT * Math.PI * 2) * 0.08);
+        const ty = b.t + b.h * (0.66 + Math.cos(cycleT * Math.PI * 2) * 0.015);
+        tinguaImg.setAttribute("transform", `translate(${tx.toFixed(1)}, ${ty.toFixed(1)})`);
+
+        // 4. Pato Canadiense chiquitito que desciende hasta el NIVEL EXACTO DEL AGUA (y = 0.77) al lado del otro patito
+        const cycleP = (animTime * 0.16) % 1; // ciclo de vuelo y posado ~38 seg
+        let px = 0, py = 0;
+        const waterY = b.t + b.h * 0.77; // Nivel exacto de la lámina de agua en el corte
+        const duckSpotX = b.l + b.w * 0.36; // Al lado del patito sobre el agua
+
+        if (cycleP < 0.42) { // vuela desde la parte superior derecha bajando directo al agua
+          const progress = cycleP / 0.42;
+          const pFrame = Math.floor(animTime * 10) % 2 === 0 ? "assets/vuelo_pato_1.png" : "assets/vuelo_pato_2.png";
+          patoImg.setAttribute("href", pFrame);
+          px = b.l + b.w * (1.05 - progress * 0.69);
+          py = b.t + b.h * 0.20 + Math.pow(progress, 1.3) * (waterY - (b.t + b.h * 0.20));
+        } else if (cycleP < 0.82) { // se posa sobre el agua junto al otro patito y nada tranquilamente
+          const progress = (cycleP - 0.42) / 0.40;
+          patoImg.setAttribute("href", "assets/pato.png");
+          px = duckSpotX + Math.sin(animTime * 1.5) * (b.w * 0.02);
+          py = waterY + Math.sin(animTime * 3.0) * 2.0; // flotación suave sobre las olas
+        } else { // despega flotando hacia la izquierda y sale
+          const progress = (cycleP - 0.82) / 0.18;
+          const pFrame = Math.floor(animTime * 10) % 2 === 0 ? "assets/vuelo_pato_1.png" : "assets/vuelo_pato_2.png";
+          patoImg.setAttribute("href", pFrame);
+          px = duckSpotX - progress * (b.w * 0.45);
+          py = waterY - Math.pow(progress, 0.85) * (b.h * 0.55);
+        }
+        patoImg.setAttribute("transform", `translate(${px.toFixed(1)}, ${py.toFixed(1)})`);
+      }
+      requestAnimationFrame(loopFaunaAnim);
+    }
+    requestAnimationFrame(loopFaunaAnim);
+
+    function render() { place(cfg.getBox()); }
+    function texto() {
+      const f = x => Number(x).toFixed(4);
+      return "// CONECTOGRAFIA_POS (corte dinámico)\nPOS_FIJAS = {\n" + NODOS.map(n => "  " + n.id + ": [" + f(pos[n.id][0]) + ", " + f(pos[n.id][1]) + "]").join(",\n") + "\n};";
+    }
+
+    // ---- Panel UI y Botón Chiquitito con Luna para Modo Oscuro ----
+    if (cfg.uiParent) {
+      const overlay = cfg.uiParent;
+      let isDark = overlay.classList.contains("cx-dark");
+
+      // Botón chiquitito con Luna / Sol en la esquina superior derecha
+      overlay.querySelectorAll(".cx-dark-btn").forEach(e => e.remove());
+      const darkBtn = document.createElement("button");
+      darkBtn.type = "button";
+      darkBtn.className = "cx-dark-btn";
+      darkBtn.style.cssText = "position:absolute; top:18px; right:18px; z-index:550; padding:6px 12px; border-radius:18px; border:1px solid #d5dbe1; background:#ffffff; color:#1e293b; font:600 12px 'Segoe UI',sans-serif; cursor:pointer; display:flex; align-items:center; gap:6px; box-shadow:0 3px 12px rgba(0,0,0,.12); transition:all .25s ease;";
+      
+      function applyTheme(dark) {
+        isDark = dark;
+        if (dark) {
+          overlay.classList.add("cx-dark");
+          darkBtn.innerHTML = "<span>☀️</span> Modo claro";
+          darkBtn.style.background = "#1e293b";
+          darkBtn.style.color = "#f8fafc";
+          darkBtn.style.borderColor = "rgba(255,255,255,0.2)";
+        } else {
+          overlay.classList.remove("cx-dark");
+          darkBtn.innerHTML = "<span>🌙</span> Modo oscuro";
+          darkBtn.style.background = "#ffffff";
+          darkBtn.style.color = "#1e293b";
+          darkBtn.style.borderColor = "#d5dbe1";
+        }
+      }
+      darkBtn.addEventListener("click", e => { e.stopPropagation(); applyTheme(!isDark); });
+      overlay.appendChild(darkBtn);
+
+      const ui = document.createElement("div");
+      ui.className = "cx-ui-panel";
+      ui.style.cssText = "position:absolute; top:78px; left:18px; z-index:20; width:228px; padding:10px 12px; border-radius:8px; background:rgba(255,255,255,.93); border:1px solid #d5dbe1; box-shadow:0 6px 20px rgba(0,0,0,.10); font:500 11px 'Segoe UI',sans-serif; color:#1e293b;";
+      const BTN = "padding:5px 9px; border-radius:6px; border:1px solid #c5ccd3; background:#fff; color:#1e293b; font:600 11px 'Segoe UI',sans-serif; cursor:pointer;";
+      // Tipos de relación / convenciones (POT Kennedy): [muestra, título, cantidad, descripción]
+      const lineaSvg = (color, dash, flechas) => '<svg width="34" height="10" viewBox="0 0 34 10" style="flex:none;"><line x1="' + (flechas === 2 ? 5 : 1) + '" y1="5" x2="' + (flechas ? 29 : 33) + '" y2="5" stroke="' + color + '" stroke-width="2" stroke-dasharray="' + dash + '"/>'
+        + (flechas ? '<path d="M33 5 L27 1.5 L27 8.5 Z" fill="' + color + '"/>' : '') + (flechas === 2 ? '<path d="M1 5 L7 1.5 L7 8.5 Z" fill="' + color + '"/>' : '') + '</svg>';
+      const leyenda = [
+        [lineaSvg("#3b9eff", "0", 1), "Transformación prevista", 42, "Intervenciones orientadas por el POT"],
+        [lineaSvg("#ff9a3c", "5 3", 1), "Tensión territorial", 36, "Conflictos entre usos, movilidad, economía y ambiente"],
+        [lineaSvg("#ff4f8b", "1.5 3", 1), "Condicionante normativo", 28, "Restricciones, protecciones y obligaciones"],
+        [lineaSvg("#4caf6e", "0", 2), "Conectividad ecológica", 14, "Relaciones entre humedales, rondas y corredores"],
+        ['<span style="flex:none; width:16px; height:16px; margin:0 9px; border-radius:50%; background:#7c4dbd; border:1px solid #5b3a96;"></span>', "Actor o nodo estratégico", 31, "Instituciones, comunidades y agentes económicos"],
+        ['<span style="flex:none; width:34px; height:14px; border:1px solid #64748b; border-radius:2px; background:repeating-linear-gradient(135deg,#64748b 0 1.5px,transparent 1.5px 5px);"></span>', "Zona de oportunidad o vacío", 9, "Aspectos de la ciudad que reciben poca atención"]
+      ];
+      ui.innerHTML = '<div style="font:800 11px \'Segoe UI\',sans-serif; letter-spacing:.05em; text-transform:uppercase; color:#475569; margin-bottom:6px;">Tipos de relación / convenciones</div>'
+        + '<div style="color:#64748b; line-height:1.4; margin-bottom:8px;">Pasa el cursor sobre los nodos para ampliarlos. Arrastra las bolitas si deseas reubicarlas.</div>'
+        + '<div style="display:flex; gap:6px; margin-bottom:9px;"><button type="button" data-a="copiar" style="' + BTN + '">Copiar posiciones</button><button type="button" data-a="reset" style="' + BTN + '">Restablecer</button></div>'
+        + leyenda.map(l => '<div style="margin-top:7px; padding:6px 8px; border:1px solid #d5dbe1; border-radius:6px;"><div style="display:flex; align-items:center; gap:7px;">' + l[0] + '<span style="flex:1; font-weight:700; color:#1e293b;">' + l[1] + '</span><span style="font-weight:800; color:#475569;">' + l[2] + '</span></div><div style="color:#64748b; line-height:1.35; margin-top:3px;">' + l[3] + '</div></div>').join("");
+      ui.addEventListener("pointerdown", e => e.stopPropagation());
+      ui.addEventListener("click", e => {
+        const a = e.target.closest("[data-a]"); if (!a) return;
+        if (a.dataset.a === "reset") { NODOS.forEach(n => { pos[n.id] = (POS_FIJAS[n.id] || n.pos).slice(); }); try { sessionStorage.removeItem(KEY); } catch (er) {} render(); }
+        else {
+          const txt = texto(), done = () => { const o = a.textContent; a.textContent = "¡Copiado!"; setTimeout(() => { a.textContent = o; }, 1400); };
+          if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done).catch(done);
+          else { const ta = document.createElement("textarea"); ta.value = txt; document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); } catch (er) {} ta.remove(); done(); }
+        }
+      });
+      cfg.uiParent.appendChild(ui);
+    }
+
+    if (window.ResizeObserver) new ResizeObserver(render).observe(host);
+    window.addEventListener("resize", render);
+    if (cfg.imgEl) cfg.imgEl.addEventListener("load", render);
+    render();
+    return { render, texto, pos };
+  };
+})();

@@ -1,0 +1,645 @@
+import os
+
+html_content = """<!DOCTYPE html>
+<html lang="es">
+<head>
+<script>
+window.onerror = function(msg, url, line, col, error) {
+  if (typeof msg === 'string' && (msg.includes('ResizeObserver') || msg.includes('Script error.') || msg.includes('favicon'))) {
+    return false;
+  }
+  console.error("Global JS Exception:", msg, "at line:", line, error);
+  var box = document.getElementById("errorBanner");
+  if (!box) {
+    box = document.createElement("div");
+    box.id = "errorBanner";
+    box.style.position = "fixed";
+    box.style.top = "10px";
+    box.style.left = "50%";
+    box.style.transform = "translateX(-50%)";
+    box.style.zIndex = "99999";
+    box.style.background = "#ff3366";
+    box.style.color = "#fff";
+    box.style.padding = "10px 20px";
+    box.style.borderRadius = "8px";
+    box.style.fontFamily = "monospace";
+    box.style.fontSize = "12px";
+    box.style.boxShadow = "0 8px 30px rgba(0,0,0,0.8)";
+    document.body ? document.body.appendChild(box) : document.documentElement.appendChild(box);
+  }
+  box.innerText = "[ERROR] " + msg + " (Linea: " + line + ")";
+};
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Sistema Socioecológico de Kennedy — Red Biótica & Territorio 3D</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #000000;
+    --accent: #84A48B;
+    --accent-glow: rgba(132, 164, 139, 0.45);
+    --water: #00B4D8;
+    --tea: #2E8B57;
+    --lavender: #A386A9;
+    --terracotta: #C96349;
+    --gold: #E7C878;
+    --tangerine: #F79E70;
+    --inat-green: #74AC00;
+    --ink: #f1f5f9;
+    --ink-dim: #94a3b8;
+    --glass-bg: rgba(6, 9, 15, 0.94);
+    --glass-border: rgba(255, 255, 255, 0.12);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden; background-color: #000000;
+    color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", sans-serif;
+    font-size: 12px; -webkit-font-smoothing: antialiased;
+  }
+  #sceneCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; outline: none; }
+
+  /* Glass Panels */
+  .glass-panel {
+    background: var(--glass-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
+    z-index: 20;
+  }
+
+  /* Header */
+  .top-header {
+    position: absolute; top: 16px; left: 16px; right: 16px; height: 58px;
+    padding: 0 20px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .header-left { display: flex; align-items: center; gap: 14px; }
+  .site-title { font-size: 15px; font-weight: 800; letter-spacing: 0.5px; color: #ffffff; display: flex; align-items: center; gap: 8px; }
+  .badge-pma {
+    background: rgba(132, 164, 139, 0.18); border: 1px solid var(--accent); color: var(--accent);
+    padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; font-family: 'IBM Plex Mono', monospace;
+  }
+  .header-controls { display: flex; align-items: center; gap: 10px; }
+  .btn-hdr {
+    background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.14);
+    color: var(--ink); padding: 7px 14px; border-radius: 8px; font-size: 11px; font-weight: 600;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s ease;
+  }
+  .btn-hdr:hover { background: rgba(255, 255, 255, 0.15); border-color: var(--accent); color: #ffffff; }
+
+  /* Left Side Drawer (Convenciones Activas & Filtros) */
+  .side-drawer {
+    position: absolute; top: 88px; left: 16px; width: 280px; max-height: calc(100vh - 190px);
+    overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px;
+  }
+  .section-title { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--accent); display: flex; align-items: center; justify-content: space-between; }
+  
+  .cat-toggles-grid { display: flex; flex-direction: column; gap: 7px; }
+  .cat-toggle {
+    display: flex; align-items: center; justify-content: space-between;
+    background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 8px 12px; border-radius: 8px; cursor: pointer; transition: all 0.2s;
+  }
+  .cat-toggle:hover { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.2); }
+  .cat-toggle.active { border-color: currentColor; background: rgba(255, 255, 255, 0.07); }
+  .cat-toggle-left { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 11.5px; }
+  .cat-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .cat-count { font-family: 'IBM Plex Mono', monospace; font-size: 10px; opacity: 0.8; }
+
+  /* Layout Pills */
+  .layout-pills { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .layout-pill {
+    background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--ink-dim); padding: 6px 10px; border-radius: 6px; font-size: 10.5px; font-weight: 600;
+    cursor: pointer; text-align: center; transition: all 0.2s;
+  }
+  .layout-pill:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+  .layout-pill.active { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 700; }
+
+  /* Waypoints Bar (Bottom Navigation) */
+  .waypoints-bar {
+    position: absolute; bottom: 84px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 6px; padding: 6px 10px;
+    background: rgba(6, 9, 15, 0.88); backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border); border-radius: 30px; z-index: 25;
+  }
+  .waypoint-btn {
+    background: transparent; border: none; color: var(--ink-dim);
+    padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .waypoint-btn:hover { color: #ffffff; background: rgba(255, 255, 255, 0.08); }
+  .waypoint-btn.active { background: var(--accent); color: #000000; font-weight: 700; }
+
+  /* Bottom Experience Bar (Morph Slider & Action) */
+  .bottom-experience-bar {
+    position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+    width: min(680px, calc(100% - 32px)); height: 56px; padding: 0 20px;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    z-index: 30;
+  }
+  .morph-slider-container { flex: 1; display: flex; align-items: center; gap: 12px; }
+  .morph-label { font-size: 11px; font-weight: 700; color: var(--ink-dim); transition: color 0.2s; }
+  .morph-label.active-mode { color: var(--accent); text-shadow: 0 0 10px var(--accent-glow); }
+  .slider-custom {
+    flex: 1; -webkit-appearance: none; appearance: none; height: 6px; border-radius: 3px;
+    background: rgba(255, 255, 255, 0.15); outline: none; transition: background 0.2s; cursor: pointer;
+  }
+  .slider-custom::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%;
+    background: var(--accent); box-shadow: 0 0 12px var(--accent); cursor: pointer;
+  }
+  .btn-materialize {
+    background: linear-gradient(135deg, var(--accent), #2E8B57); color: #000000;
+    border: none; padding: 9px 18px; border-radius: 8px; font-weight: 800; font-size: 11.5px;
+    letter-spacing: 0.5px; cursor: pointer; display: flex; align-items: center; gap: 8px;
+    box-shadow: 0 4px 16px var(--accent-glow); transition: all 0.2s;
+  }
+  .btn-materialize:hover { transform: translateY(-1px); box-shadow: 0 6px 22px var(--accent-glow); }
+
+  /* Hover Tooltips (Especies y Árboles) */
+  .floating-tooltip {
+    position: fixed; display: none; z-index: 900; pointer-events: none;
+    background: rgba(6, 9, 15, 0.94); backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 10px;
+    padding: 12px 14px; max-width: 280px; box-shadow: 0 16px 36px rgba(0,0,0,0.8);
+    font-size: 11px; line-height: 1.4;
+  }
+  .tt-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .tt-img { width: 38px; height: 38px; border-radius: 8px; object-fit: cover; border: 1px solid rgba(255,255,255,0.2); }
+  .tt-title-box { flex: 1; min-width: 0; }
+  .tt-name { font-weight: 800; font-size: 12px; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tt-sci { font-size: 10.5px; font-style: italic; color: var(--lavender); }
+  .tt-badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 700; margin-bottom: 4px; }
+  .tt-role { color: var(--ink-dim); font-size: 10.5px; margin-top: 4px; }
+
+  /* Tree Hover Tooltip Específico */
+  #treeHoverTooltip {
+    border-color: rgba(72, 187, 120, 0.4);
+    box-shadow: 0 12px 32px rgba(46, 139, 87, 0.35);
+  }
+
+  /* Pop-up Modals */
+  .species-modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0, 0, 0, 0.82); backdrop-filter: blur(8px);
+    display: none; align-items: center; justify-content: center; z-index: 1000;
+  }
+  .species-modal-card {
+    width: min(500px, 92vw); background: #0b1019; border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.9);
+    display: flex; flex-direction: column; animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes modalPop { 0% { opacity: 0; transform: scale(0.92); } 100% { opacity: 1; transform: scale(1.0); } }
+  .modal-img-banner { width: 100%; height: 190px; object-fit: cover; background: #000; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  .modal-content-box { padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+  .modal-top-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .modal-main-title { font-size: 17px; font-weight: 800; color: #fff; }
+  .modal-sci-name { font-size: 12.5px; font-style: italic; color: var(--lavender); margin-top: 2px; }
+  .modal-close-btn {
+    background: rgba(255,255,255,0.08); border: none; color: #fff; width: 28px; height: 28px;
+    border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .modal-close-btn:hover { background: rgba(255,255,255,0.2); }
+  .modal-details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 10px; font-size: 11px; }
+  .modal-btn-row { display: flex; gap: 10px; margin-top: 6px; }
+  .modal-link-btn {
+    flex: 1; padding: 8px 14px; border-radius: 8px; font-weight: 700; font-size: 11px;
+    display: flex; align-items: center; justify-content: center; gap: 6px; text-decoration: none;
+    background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); color: #fff; transition: all 0.2s;
+  }
+  .modal-link-btn:hover { background: var(--accent); color: #000; border-color: var(--accent); }
+
+  /* MATRIZ DE TORTAS & EVIDENCIA MODAL */
+  .pie-modal-card {
+    width: min(1180px, 95vw); max-height: 90vh; overflow-y: auto;
+    background: #080c14; border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 18px; padding: 24px; box-shadow: 0 30px 80px rgba(0,0,0,0.95);
+    display: flex; flex-direction: column; gap: 20px;
+  }
+  .pie-modal-header { display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 16px; }
+  .pie-modal-title { font-size: 16px; font-weight: 900; color: #84A48B; display: flex; align-items: center; gap: 10px; letter-spacing: 0.5px; }
+  .pie-modal-sub { font-size: 11px; color: var(--ink-dim); margin-top: 4px; }
+  
+  .btn-explore-3d {
+    background: rgba(255, 255, 255, 0.08); border: 1px solid var(--accent); color: #ffffff;
+    padding: 8px 18px; border-radius: 8px; font-weight: 700; font-size: 12px; cursor: pointer;
+    display: flex; align-items: center; gap: 8px; transition: all 0.2s;
+  }
+  .btn-explore-3d:hover { background: var(--accent); color: #000000; box-shadow: 0 0 16px var(--accent-glow); }
+
+  .pie-cards-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px;
+  }
+  .pie-card {
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 12px;
+  }
+  .pie-card-title { font-size: 12.5px; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 8px; }
+  .pie-card-desc { font-size: 11px; color: var(--ink-dim); line-height: 1.4; }
+  
+  .pie-chart-wrapper {
+    display: flex; justify-content: center; align-items: center; padding: 12px 0;
+  }
+  .pie-svg-container { width: 160px; height: 160px; }
+
+  .pie-legend-list { display: flex; flex-direction: column; gap: 6px; }
+  .pie-legend-item {
+    display: flex; align-items: center; justify-content: space-between;
+    background: rgba(255,255,255,0.03); padding: 7px 10px; border-radius: 6px;
+    font-size: 11px; text-decoration: none; color: var(--ink); transition: all 0.2s;
+  }
+  .pie-legend-item.clickable:hover { background: rgba(132,164,139,0.15); border: 1px solid var(--accent); transform: translateX(3px); }
+  .pie-legend-item-left { display: flex; align-items: center; gap: 8px; }
+  .pie-legend-dot { width: 9px; height: 9px; border-radius: 50%; }
+  .pie-legend-percent { font-family: 'IBM Plex Mono', monospace; font-weight: 700; }
+
+  /* Loading Veil */
+  #loadingVeil {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000000;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 16px; z-index: 9999; transition: opacity 0.4s ease; pointer-events: none;
+  }
+  .spinner-circle {
+    width: 44px; height: 44px; border: 3px solid rgba(132, 164, 139, 0.2);
+    border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { 100% { transform: rotate(360deg); } }
+
+  /* Active Tree Chip */
+  #activeTreeChip {
+    position: absolute; top: 88px; right: 16px; padding: 10px 16px;
+    display: none; align-items: center; gap: 10px; z-index: 25;
+  }
+  #activeTreeChip.show { display: flex; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+<div id="loadingVeil">
+  <div class="spinner-circle"></div>
+  <div style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--accent); letter-spacing:1px;">
+    SISTEMA SOCIOECOLOGICO DE KENNEDY...
+  </div>
+</div>
+
+<canvas id="sceneCanvas"></canvas>
+
+<!-- Top Header -->
+<header class="top-header glass-panel" id="topHeader">
+  <div class="header-left">
+    <div class="site-title">
+      <i class="fa-solid fa-network-wired" style="color:var(--accent);"></i>
+      <span>SISTEMA SOCIOECOLÓGICO DE KENNEDY</span>
+    </div>
+    <span class="badge-pma">PMA • JBB • EBIRD • INATURALIST</span>
+  </div>
+  <div class="header-controls">
+    <button class="btn-hdr" onclick="openPieChartsModal()">
+      <i class="fa-solid fa-chart-pie" style="color:var(--gold);"></i>
+      <span>METRÍCAS & EVIDENCIA</span>
+    </button>
+    <button class="btn-hdr" id="btnTourSpecies">
+      <i class="fa-solid fa-compass"></i>
+      <span>TOUR ESPECIES</span>
+    </button>
+    <button class="btn-hdr" onclick="openWelcomeModal()">
+      <i class="fa-solid fa-circle-info"></i>
+      <span>MANIFIESTO</span>
+    </button>
+  </div>
+</header>
+
+<!-- Side Drawer (Convenciones & Filtros) -->
+<aside class="side-drawer glass-panel" id="sideDrawer">
+  <div class="section-title">
+    <span>CONVENCIONES & FILTROS</span>
+    <i class="fa-solid fa-sliders"></i>
+  </div>
+  <div class="cat-toggles-grid">
+    <div class="cat-toggle active" data-cat="0" style="color:#84A48B;">
+      <div class="cat-toggle-left"><div class="cat-dot" style="background:#84A48B;"></div><span>Flora & Árboles SIGAU</span></div>
+      <span class="cat-count">181 taxones</span>
+    </div>
+    <div class="cat-toggle active" data-cat="1" style="color:#F79E70;">
+      <div class="cat-toggle-left"><div class="cat-dot" style="background:#F79E70;"></div><span>Aves de Kennedy</span></div>
+      <span class="cat-count">236 taxones</span>
+    </div>
+    <div class="cat-toggle active" data-cat="2" style="color:#E7C878;">
+      <div class="cat-toggle-left"><div class="cat-dot" style="background:#E7C878;"></div><span>Mamíferos</span></div>
+      <span class="cat-count">10 taxones</span>
+    </div>
+    <div class="cat-toggle active" data-cat="3" style="color:#6B9080;">
+      <div class="cat-toggle-left"><div class="cat-dot" style="background:#6B9080;"></div><span>Moluscos</span></div>
+      <span class="cat-count">10 taxones</span>
+    </div>
+    <div class="cat-toggle active" data-cat="4" style="color:#00B4D8;">
+      <div class="cat-toggle-left"><div class="cat-dot" style="background:#00B4D8;"></div><span>Anfibios</span></div>
+      <span class="cat-count">6 taxones</span>
+    </div>
+    <div class="cat-toggle active" data-cat="5" style="color:#C96349;">
+      <div class="cat-toggle-left"><div class="cat-dot" style="background:#C96349;"></div><span>Reptiles</span></div>
+      <span class="cat-count">8 taxones</span>
+    </div>
+  </div>
+
+  <div class="section-title" style="margin-top:8px;">
+    <span>DISPOSICIÓN DE RED</span>
+    <i class="fa-solid fa-project-diagram"></i>
+  </div>
+  <div class="layout-pills">
+    <div class="layout-pill active" id="btnLayout_circular" onclick="setRedLayout('circular')">Circular</div>
+    <div class="layout-pill" id="btnLayout_force" onclick="setRedLayout('force')">Trófico</div>
+    <div class="layout-pill" id="btnLayout_hierarchical" onclick="setRedLayout('hierarchical')">Jerárquico</div>
+    <div class="layout-pill" id="btnLayout_spherical" onclick="setRedLayout('spherical')">Esférico</div>
+  </div>
+</aside>
+
+<!-- Active Tree Chip Indicator -->
+<div class="glass-panel" id="activeTreeChip">
+  <i class="fa-solid fa-tree" style="color:#48BB78; font-size:16px;"></i>
+  <div>
+    <div style="font-weight:800; font-size:12px; color:#fff;" id="activeTreeName">CHICALÁ</div>
+    <div style="font-size:10px; color:#cbd5e1;" id="activeTreeCount">Censo Forestal SIGAU</div>
+  </div>
+</div>
+
+<!-- Waypoints Bar -->
+<nav class="waypoints-bar"></nav>
+
+<!-- Bottom Experience Bar -->
+<div class="bottom-experience-bar glass-panel">
+  <div class="morph-slider-container">
+    <span class="morph-label active-mode" id="labelSwarm">RED BIÓTICA</span>
+    <input type="range" class="slider-custom" id="morphSlider" min="0" max="1" step="0.005" value="0">
+    <span class="morph-label" id="labelTerritory">TERRITORIO 3D</span>
+  </div>
+  <button class="btn-materialize" id="btnToggleView">
+    <i class="fa-solid fa-cube"></i>
+    <span id="btnActionText">MATERIALIZAR TERRITORIO</span>
+  </button>
+</div>
+
+<!-- Floating Tooltip para Especies -->
+<div class="floating-tooltip" id="territorySpeciesTooltip">
+  <div class="tt-header">
+    <img src="" class="tt-img" id="ttSpeciesImg" alt="Especie">
+    <div class="tt-title-box">
+      <span class="tt-badge" id="ttSpeciesCat" style="background:rgba(255,255,255,0.1);">Categoría</span>
+      <span style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; opacity:0.7; margin-left:4px;" id="ttSpeciesId">ID</span>
+      <div class="tt-name" id="ttSpeciesName">Nombre Común</div>
+      <div class="tt-sci" id="ttSpeciesSci">Nombre Científico</div>
+    </div>
+  </div>
+  <div class="tt-role" id="ttSpeciesRole">Rol ecológico y funcional</div>
+  <div style="font-size:9.5px; color:var(--accent); margin-top:4px;" id="ttSpeciesLoc">Ubicación territorial</div>
+</div>
+
+<!-- Floating Tooltip para Árboles en 3D -->
+<div class="floating-tooltip" id="treeHoverTooltip">
+  <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+    <i class="fa-solid fa-tree" style="color:#48BB78; font-size:14px;"></i>
+    <div style="font-weight:800; font-size:12px; color:#ffffff;" id="treeCommonName">Sauco</div>
+  </div>
+  <div style="font-size:10.5px; font-style:italic; color:#A386A9;" id="treeSciName">Sambucus nigra (Adoxaceae)</div>
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-top:6px; font-size:10px; color:#cbd5e1; border-top:1px solid rgba(255,255,255,0.08); padding-top:4px;">
+    <span>Altura: <b id="treeHeight" style="color:#fff;">6.5 m</b></span>
+    <span style="font-family:'IBM Plex Mono',monospace; opacity:0.8;" id="treeCode">ID</span>
+  </div>
+  <div style="font-size:9px; color:#84A48B; margin-top:2px;">Censo Forestal JBB / SIGAU — Kennedy</div>
+</div>
+
+<!-- Species Modal Pop-up (Clic en cualquier Baliza o Nodo) -->
+<div class="species-modal-overlay" id="territorySpeciesModal">
+  <div class="species-modal-card">
+    <img src="" class="modal-img-banner" id="modalSpeciesImg" alt="Fotografía Especie">
+    <div class="modal-content-box">
+      <div class="modal-top-row">
+        <div>
+          <span class="tt-badge" id="modalSpeciesCat" style="background:rgba(255,255,255,0.1);">Categoría</span>
+          <span style="font-family:'IBM Plex Mono',monospace; font-size:10px; opacity:0.7; margin-left:6px;" id="modalSpeciesId">ID</span>
+          <div class="modal-main-title" id="modalSpeciesName">Nombre Común</div>
+          <div class="modal-sci-name" id="modalSpeciesSci">Nombre Científico</div>
+        </div>
+        <button class="modal-close-btn" id="btnCloseTerritoryModal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-details-grid">
+        <div>
+          <div style="opacity:0.6; font-size:9.5px; text-transform:uppercase;">Nicho / Rol Trófico</div>
+          <div style="font-weight:600; color:#fff;" id="modalSpeciesRole">Consumidor</div>
+        </div>
+        <div>
+          <div style="opacity:0.6; font-size:9.5px; text-transform:uppercase;">Estrato Ecológico</div>
+          <div style="font-weight:600; color:#fff;" id="modalSpeciesStratum">Dosel / Juncal</div>
+        </div>
+        <div>
+          <div style="opacity:0.6; font-size:9.5px; text-transform:uppercase;">Ubicación en Territorio</div>
+          <div style="font-weight:600; color:var(--accent);" id="modalSpeciesLoc">Humedal El Burro</div>
+        </div>
+        <div>
+          <div style="opacity:0.6; font-size:9.5px; text-transform:uppercase;">Estatus de Monitoreo</div>
+          <div style="font-weight:600; color:#F79E70;" id="modalSpeciesAlert">PMA Vigente</div>
+        </div>
+      </div>
+
+      <div class="modal-btn-row">
+        <a href="#" target="_blank" class="modal-link-btn" id="modalInatLink">
+          <i class="fa-solid fa-leaf" style="color:#74AC00;"></i>
+          <span>iNaturalist</span>
+        </a>
+        <a href="#" target="_blank" class="modal-link-btn" id="modalEbirdLink">
+          <i class="fa-solid fa-dove" style="color:#00B4D8;"></i>
+          <span>eBird Portal</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Completo de Métricas Ecológicas y Matriz de Evidencia -->
+<div class="species-modal-overlay" id="pieChartsModalOverlay">
+  <div class="pie-modal-card">
+    <div class="pie-modal-header">
+      <div>
+        <div class="pie-modal-title">
+          <i class="fa-solid fa-chart-pie"></i>
+          <span>SISTEMA SOCIOECOLÓGICO DE KENNEDY — METRÍCAS ECOLÓGICAS Y MATRIZ DE EVIDENCIA</span>
+        </div>
+        <div class="pie-modal-sub">
+          Distribución funcional, composición taxonómica y respaldo técnico del modelo (451 taxones únicos censados)
+        </div>
+      </div>
+      <button class="btn-explore-3d" onclick="closePieChartsModal()">
+        <span>Explorar Red 3D</span>
+        <i class="fa-solid fa-arrow-right"></i>
+      </button>
+    </div>
+
+    <div class="pie-cards-grid">
+      <!-- 1. Torta A -->
+      <div class="pie-card">
+        <div class="pie-card-title">
+          <i class="fa-solid fa-diagram-project" style="color:#A386A9;"></i>
+          <span>1. TORTA A: DISTRIBUCIÓN POR TIPOS DE INTERACCIÓN BIÓTICA</span>
+        </div>
+        <div class="pie-card-desc">
+          Representa cómo se distribuyen las relaciones funcionales registradas en la red socioecológica de Kennedy.
+        </div>
+        <div class="pie-chart-wrapper">
+          <svg class="pie-svg-container" id="pieSvgA" viewBox="0 0 160 160"></svg>
+        </div>
+        <div class="pie-legend-list">
+          <div class="pie-legend-item">
+            <div class="pie-legend-item-left"><div class="pie-legend-dot" style="background:#A386A9;"></div><span>Visita Floral / Polinización</span></div>
+            <span class="pie-legend-percent" style="color:#A386A9;">39.18%</span>
+          </div>
+          <div class="pie-legend-item">
+            <div class="pie-legend-item-left"><div class="pie-legend-dot" style="background:#84A48B;"></div><span>Herbivoría Parcial</span></div>
+            <span class="pie-legend-percent" style="color:#84A48B;">31.58%</span>
+          </div>
+          <div class="pie-legend-item">
+            <div class="pie-legend-item-left"><div class="pie-legend-dot" style="background:#F79E70;"></div><span>Nidificación y Refugio</span></div>
+            <span class="pie-legend-percent" style="color:#F79E70;">7.44%</span>
+          </div>
+          <div class="pie-legend-item">
+            <div class="pie-legend-item-left"><div class="pie-legend-dot" style="background:#E69888;"></div><span>Dispersión de Semillas</span></div>
+            <span class="pie-legend-percent" style="color:#E69888;">4.88%</span>
+          </div>
+          <div class="pie-legend-item">
+            <div class="pie-legend-item-left"><div class="pie-legend-dot" style="background:#C96349;"></div><span>Parasitismo / Depredación / Epibiosis</span></div>
+            <span class="pie-legend-percent" style="color:#C96349;">16.92%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Torta B -->
+      <div class="pie-card">
+        <div class="pie-card-title">
+          <i class="fa-solid fa-dna" style="color:#84A48B;"></i>
+          <span>2. TORTA B: COMPOSICIÓN POR REINOS TAXONÓMICOS</span>
+        </div>
+        <div class="pie-card-desc">
+          Muestra el peso proporcional de los reinos biológicos y componentes en la matriz ambiental.
+        </div>
+        <div class="pie-chart-wrapper">
+          <svg class="pie-svg-container" id="pieSvgB" viewBox="0 0 160 160"></svg>
+        </div>
+        <div class="pie-legend-list">
+          <div class="pie-legend-item">
+            <div class="pie-legend-item-left"><div class="pie-legend-dot" style="background:#84A48B;"></div><span>Plantae (Flora Nativa e Invasora / SIGAU)</span></div>
+            <span class="pie-legend-percent" style="color:#84A48B;">59.5%</span>
+          </div>
+          <div class="pie-legend-item">
+            <div class="pie-legend-item-left"><div class="pie-legend-dot" style="background:#F79E70;"></div><span>Animalia (Avifauna, Herpetos, MAM)</span></div>
+            <span class="pie-legend-percent" style="color:#F79E70;">30.4%</span>
+          </div>
+          <div class="pie-legend-item">
+            <div class="pie-legend-item-left"><div class="pie-legend-dot" style="background:#A386A9;"></div><span>Fungi (Hongos y Micorrizas)</span></div>
+            <span class="pie-legend-percent" style="color:#A386A9;">7.0%</span>
+          </div>
+          <div class="pie-legend-item">
+            <div class="pie-legend-item-left"><div class="pie-legend-dot" style="background:#E7C878;"></div><span>Bacterias y Protistas (Biofiltro)</span></div>
+            <span class="pie-legend-percent" style="color:#E7C878;">3.1%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Torta C -->
+      <div class="pie-card">
+        <div class="pie-card-title">
+          <i class="fa-solid fa-book-bookmark" style="color:#74AC00;"></i>
+          <span>3. TORTA C: ORIGEN Y SOPORTE DE FUENTES DE EVIDENCIA</span>
+        </div>
+        <div class="pie-card-desc">
+          Demuestra el respaldo técnico del modelo a partir del origen del dato (Toca cada fuente para abrir el portal científico):
+        </div>
+        <div class="pie-chart-wrapper">
+          <svg class="pie-svg-container" id="pieSvgC" viewBox="0 0 160 160"></svg>
+        </div>
+        <div class="pie-legend-list">
+          <a href="https://www.inaturalist.org/observations?captive=false&nelat=4.645227988012021&nelng=-74.14909601914505&subview=table&swlat=4.6409505371905535&swlng=-74.15227175461868&iconic_taxa=Protozoa,Fungi,Plantae,Insecta,Arachnida,Aves,Amphibia,Reptilia,Mammalia,Actinopterygii,Mollusca" target="_blank" class="pie-legend-item clickable">
+            <div class="pie-legend-item-left"><div class="pie-legend-dot" style="background:#74AC00;"></div><span>Registros de Campo iNaturalist Kennedy</span></div>
+            <span class="pie-legend-percent" style="color:#74AC00;">68.8% [Link]</span>
+          </a>
+          <a href="https://redbiotica.jbb.gov.co/" target="_blank" class="pie-legend-item clickable">
+            <div class="pie-legend-item-left"><div class="pie-legend-dot" style="background:#84A48B;"></div><span>Jardín Botánico de Bogotá (JBB / SIGAU / PEDH)</span></div>
+            <span class="pie-legend-percent" style="color:#84A48B;">21.5% [Link]</span>
+          </a>
+          <a href="https://ebird.org/region/CO/hotspots" target="_blank" class="pie-legend-item clickable">
+            <div class="pie-legend-item-left"><div class="pie-legend-dot" style="background:#00B4D8;"></div><span>Literatura Gris / eBird Hotspots</span></div>
+            <span class="pie-legend-percent" style="color:#00B4D8;">6.2% [Link]</span>
+          </a>
+          <a href="https://www.gbif.org/" target="_blank" class="pie-legend-item clickable">
+            <div class="pie-legend-item-left"><div class="pie-legend-dot" style="background:#E7C878;"></div><span>Libros y Ciencia Participativa GBIF</span></div>
+            <span class="pie-legend-percent" style="color:#E7C878;">3.5% [Link]</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Welcome Manifiesto Modal -->
+<div class="species-modal-overlay" id="welcomeModalOverlay">
+  <div class="species-modal-card" style="max-width:540px;">
+    <div style="padding:24px; display:flex; flex-direction:column; gap:14px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="font-size:16px; font-weight:800; color:var(--accent);">SISTEMA SOCIOECOLÓGICO DE KENNEDY</h3>
+        <button class="modal-close-btn" onclick="closeWelcomeModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <p style="font-size:11.5px; line-height:1.6; color:#cbd5e1;">
+        Plataforma geoespacial e interactiva de visualización de la biodiversidad urbana en la Localidad de Kennedy (Bogotá D.C.). 
+        Integra <b>451 taxones únicos</b> catalogados según el censo del Jardín Botánico de Bogotá (JBB / SIGAU), 
+        los inventarios de avifauna eBird/iNaturalist y la cartografía ambiental de los humedales El Burro, La Vaca, Techo y Meandro del Say.
+      </p>
+      <div style="background:rgba(255,255,255,0.04); border-radius:10px; padding:12px; font-size:11px; display:flex; flex-direction:column; gap:6px;">
+        <div>- <b>Red Biótica</b>: Relaciones vivas y armónicas de polinización, dispersión, nidificación y parasitismo.</div>
+        <div>- <b>Territorio 3D</b>: Axonometría de Kennedy con árboles y edificaciones georreferenciadas.</div>
+        <div>- <b>Matriz de Evidencia</b>: Tortas y gráficos de validación científica con enlaces directos a iNaturalist, GBIF y JBB.</div>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button class="btn-materialize" style="flex:1; justify-content:center;" onclick="closeWelcomeModal()">
+          EXPLORAR RED 3D
+        </button>
+        <button class="btn-hdr" style="padding:9px 16px;" onclick="closeWelcomeModal(); openPieChartsModal();">
+          VER TORTAS
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="modulo-11-garden.js"></script>
+<script>
+  setTimeout(function() {
+    var v = document.getElementById('loadingVeil');
+    if (v) {
+      v.style.opacity = '0';
+      v.style.pointerEvents = 'none';
+      setTimeout(function() { v.style.display = 'none'; }, 300);
+    }
+  }, 350);
+</script>
+</body>
+</html>
+"""
+
+with open("modulo-11-garden.html", "w", encoding="utf-8") as f:
+    f.write(html_content)
+
+with open("index.html", "w", encoding="utf-8") as f:
+    f.write(html_content)
+
+print("Synchronized HTML files with zero emojis and 68.8% iNaturalist evidence.")
