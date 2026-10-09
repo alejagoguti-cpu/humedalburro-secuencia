@@ -151,7 +151,19 @@ function layout3d(n, edges) {
 
   const n = nodes.length, adj = Array.from({ length: n }, () => []);
   const we = edges.map(e => { adj[e.source].push(e.target); adj[e.target].push(e.source); return [e.source, e.target, e.weight]; });
-  const bc = brandes(n, adj), { comm, Q } = louvain(n, we), pos = layout3d(n, we);
+  let effName = ''; const wsR0 = wb.getWorksheet('RED'); if (wsR0) rows(wsR0, 1, 2).forEach(([k, v]) => { if (k === 'capa_efectos') effName = v; });
+  const effIdx = effName ? capas.findIndex(c => c.name === effName) : -1;
+  const bc = brandes(n, adj), { comm, Q } = louvain(n, we);
+  // El layout de las vistas de analisis se calcula con los nodos visibles (sintomas); los efectos ocultos van junto a sus sintomas
+  const vis = nodes.map((nd, i) => i).filter(i => nodes[i].cat !== effIdx), vmap = new Map(vis.map((g, k) => [g, k]));
+  const wsub = we.filter(([a2, b2]) => vmap.has(a2) && vmap.has(b2)).map(([a2, b2, w2]) => [vmap.get(a2), vmap.get(b2), w2]);
+  const psub = effIdx >= 0 ? layout3d(vis.length, wsub) : layout3d(n, we);
+  const pos = effIdx >= 0 ? nodes.map((nd, i) => {
+    if (vmap.has(i)) return psub[vmap.get(i)];
+    const nb = adj[i].filter(j => vmap.has(j)); if (!nb.length) return [0, 0, 0];
+    const m = [0, 1, 2].map(k => nb.reduce((acc, j) => acc + psub[vmap.get(j)][k], 0) / nb.length);
+    const r2 = rng(i * 7919 + 13); return m.map(v => +(v + (r2() - 0.5) * 6).toFixed(2));
+  }) : psub;
   const gephi = { Q, nodes: {} };
   nodes.forEach((nd, i) => { gephi.nodes[nd.id] = [comm[i], bc[i], ...pos[i]]; });
 

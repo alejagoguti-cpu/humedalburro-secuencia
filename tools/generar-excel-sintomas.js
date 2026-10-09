@@ -23,7 +23,12 @@ const TYPES = [
   ['T2', 'Efecto ambiental', 'El síntoma degrada agua, suelo, humedales o aire.', '#4ADE80', 'fa-leaf'],
   ['T3', 'Efecto en movilidad y redes', 'El síntoma retrasa, interrumpe o encarece flujos de personas y carga.', '#38BDF8', 'fa-route'],
   ['T4', 'Efecto social y de riesgo', 'El síntoma afecta ingresos, acceso a servicios o expone a la población a riesgo.', '#F43F5E', 'fa-people-group'],
-  ['T5', 'Se refuerza con otro síntoma', 'Dos síntomas se alimentan entre sí y se agravan juntos.', '#FACC15', 'fa-link']
+  ['T5', 'Se refuerza por vía económica', 'Dos síntomas se alimentan entre sí a través de ingresos, empleo o costos.', '#FACC15', 'fa-link'],
+  ['T6', 'Se refuerza por vía ambiental', 'Dos síntomas se agravan entre sí a través del agua, los residuos, el suelo o el aire.', '#A3E635', 'fa-water'],
+  ['T7', 'Se refuerza por vía de movilidad y redes', 'Dos síntomas se agravan entre sí a través de las vías, el transporte o la carga.', '#2DD4BF', 'fa-bus'],
+  ['T8', 'Se refuerza por vía social y de riesgo', 'Dos síntomas se agravan entre sí a través del acceso a servicios o de la exposición a riesgo.', '#E879F9', 'fa-heart-pulse'],
+  ['T9', 'Comparten territorio (menos de 600 m)', 'Los dos síntomas ocurren a menos de 600 m de distancia: afectan a los mismos vecinos y calles. Relación derivada de las coordenadas.', '#94A3B8', 'fa-location-dot'],
+  ['T10', 'Comparten entidad responsable', 'Una misma entidad (IDU, EAAB, UAESP, Secretaría de Movilidad, etc.) tiene competencia sobre los dos síntomas. Relación derivada de la columna Actores.', '#C4B5FD', 'fa-building-columns']
 ];
 
 const Q_ECO = '¿El territorio genera oportunidades sin agotar recursos ni concentrar beneficios?';
@@ -255,7 +260,7 @@ const E = [
 ];
 
 // ---- ARISTAS: [síntoma/origen, destino, tipo, tensión, peso, justificación] ----
-const T = { 1: 'Efecto económico', 2: 'Efecto ambiental', 3: 'Efecto en movilidad y redes', 4: 'Efecto social y de riesgo', 5: 'Se refuerza con otro síntoma' };
+const T = { 1: 'Efecto económico', 2: 'Efecto ambiental', 3: 'Efecto en movilidad y redes', 4: 'Efecto social y de riesgo', 5: 'Se refuerza por vía económica', 6: 'Se refuerza por vía ambiental', 7: 'Se refuerza por vía de movilidad y redes', 8: 'Se refuerza por vía social y de riesgo', 9: 'Comparten territorio (menos de 600 m)', 10: 'Comparten entidad responsable' };
 const W = { 'Crítica': 4, 'Severa': 3, 'Alta': 2, 'Media': 1 };
 const ED = [
   ['S01', 'E01', 1, 'Severa', 'Como casi todo el abastecimiento pasa por un punto, cualquier bloqueo o paro lo reduce y sube los precios.'],
@@ -334,6 +339,38 @@ nodes.forEach((n, i) => {
   }
   pts.push([la, lo]); n.latlon = [+la.toFixed(5), +lo.toFixed(5)];
 });
+
+// ---------- relaciones entre síntomas: vía de refuerzo + relaciones derivadas de los datos ----------
+const layerOf = {}; S.forEach(s => { layerOf[s[0]] = s[2]; });
+const OVERRIDE = { 'S30|S49': 8, 'S49|S30': 8 };
+function via(a, b) {
+  if (OVERRIDE[a + '|' + b]) return OVERRIDE[a + '|' + b];
+  const A = layerOf[a], B = layerOf[b];
+  if (A === 'Metabolismo urbano' || B === 'Metabolismo urbano') return 6;
+  if (A === 'Redes y flujos' || B === 'Redes y flujos') return 7;
+  if (A === 'Economía territorial' || B === 'Economía territorial') return 5;
+  return 8;
+}
+ED.forEach(e => { if (e[2] === 5 && e[0][0] === 'S' && e[1][0] === 'S') e[2] = via(e[0], e[1]); });
+const pairKey = (a, b) => [a, b].sort().join('|');
+const linked = new Set(ED.map(e => pairKey(e[0], e[1])));
+const pos = {}; nodes.forEach(n => { pos[n.kind === 'S' ? n.s[0] : n.e[0]] = n.latlon; });
+const dist = (a, b) => Math.hypot((pos[a][0] - pos[b][0]) * 111000, (pos[a][1] - pos[b][1]) * 110000);
+const ENT = [['IDU', /\bIDU\b/], ['EAAB', /EAAB/], ['UAESP', /UAESP/], ['Secretaría de Movilidad', /Secretaría de Movilidad/], ['TransMilenio', /TransMilenio/], ['SDDE', /SDDE/], ['IPES', /IPES/],
+  ['Secretaría de Educación', /Secretaría de Educación/], ['Secretaría de la Mujer', /Secretaría de la Mujer/], ['Secretaría de Ambiente', /Secretaría de Ambiente|\bSDA\b/], ['Secretaría de Salud', /Secretaría de Salud|Subred/],
+  ['Empresa Metro de Bogotá', /Empresa Metro|\bMetro\b/]];
+const ents = {}; S.forEach(s => { ents[s[0]] = ENT.filter(([, re]) => re.test(s[8])).map(([n]) => n); });
+const ids = S.map(s => s[0]);
+let nTer = 0, nEnt = 0;
+for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) {
+  const a = ids[i], b = ids[j], k = pairKey(a, b);
+  if (linked.has(k)) continue;
+  const d = dist(a, b);
+  if (d < 600) { ED.push([a, b, 9, d < 250 ? 'Alta' : 'Media', 'Ambos síntomas ocurren a ' + Math.round(d / 10) * 10 + ' m uno del otro: afectan a los mismos vecinos y calles. (Derivada de las coordenadas.)']); linked.add(k); nTer++; continue; }
+  const shared = ents[a].filter(x => ents[b].includes(x));
+  if (shared.length) { ED.push([a, b, 10, 'Media', 'Una misma entidad tiene competencia sobre ambos síntomas: ' + shared.join(', ') + '. (Derivada de la columna Actores.)']); linked.add(k); nEnt++; }
+}
+console.log('Relaciones derivadas: territorio ' + nTer + ', entidad ' + nEnt);
 
 (async () => {
   const wb = new ExcelJS.Workbook();
