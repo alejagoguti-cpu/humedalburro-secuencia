@@ -402,6 +402,8 @@ console.log('Relaciones derivadas: territorio ' + nTer + ', entidad ' + nEnt);
     ['marca', 'SÍNTOMAS Y EFECTOS · KENNEDY'],
     ['capa_efectos', 'Efecto en el territorio'],
     ['capa_clave', 'Metabolismo urbano'],
+    ['secuencia', 'si'],
+    ['saludo', 'la red de síntomas y efectos de Kennedy'],
     ['fuentes', 'Alcaldía de Bogotá y Alcaldía Local de Kennedy|Secretaría de la Mujer (EM 2017)|Secretaría de Educación (Kennedy 2022)|Prensa y entidades distritales (ver Fuente de cada nodo)'],
     ['faq1_pregunta', '¿Qué es un síntoma y qué es un efecto?'],
     ['faq1_respuesta', 'Un síntoma es un hecho observable y localizado en Kennedy (p. ej. la Calle 38 Sur deteriorada). Un efecto es lo que ese hecho provoca en el territorio (p. ej. rutas zonales desviadas). Al presionar un síntoma aparecen sus efectos.'],
