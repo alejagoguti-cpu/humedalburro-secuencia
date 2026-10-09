@@ -2,6 +2,7 @@
 // Uso: npm i exceljs && node tools/generar-excel-sintomas.js && node tools/build-red.js datos/red-sintomas-kennedy.xlsx
 const ExcelJS = require('exceljs');
 const path = require('path');
+const ETIQ = require('./etiquetas-sintomas');
 const OUT = path.join(__dirname, '..', 'datos', 'red-sintomas-kennedy.xlsx');
 
 // ---- Lugares georreferenciados (lat, lon) -- OpenStreetMap/Nominatim y Wikipedia ----
@@ -391,11 +392,11 @@ console.log('Relaciones derivadas: territorio ' + nTer + ', entidad ' + nEnt);
   const wsT = sheet('INTERACCIONES', ['Codigo', 'Tipo de relacion', 'Definicion', 'Color (HEX)', 'Icono (Font Awesome)'], TYPES, [9, 38, 80, 13, 26]);
   const rowsN = [];
   nodes.forEach(n => {
-    if (n.kind === 'S') { const s = n.s; rowsN.push(['NOD-' + s[0], s[1], s[2], 'Síntoma · ' + s[3], s[10], s[4], s[6], s[7], s[8], s[9], s[11], '', n.latlon[0], n.latlon[1], '', '', s[12]]); }
-    else { const e = n.e; rowsN.push(['NOD-' + e[0], e[1], 'Efecto en el territorio', 'Efecto · ' + e[2], e[7], e[3], e[5], e[6], '', '', e[8], '', n.latlon[0], n.latlon[1], '', '', e[9]]); }
+    if (n.kind === 'S') { const s = n.s; rowsN.push(['NOD-' + s[0], s[1], s[2], 'Síntoma · ' + s[3], s[10], s[4], s[6], s[7], s[8], s[9], s[11], '', n.latlon[0], n.latlon[1], '', '', s[12], ETIQ[s[0]][1]]); }
+    else { const e = n.e; rowsN.push(['NOD-' + e[0], e[1], 'Efecto en el territorio', 'Efecto · ' + e[2], e[7], e[3], e[5], e[6], '', '', e[8], '', n.latlon[0], n.latlon[1], '', '', e[9], ETIQ[e[0]][1]]); }
   });
-  const wsN = sheet('NODOS', ['ID', 'Nombre (name)', 'Capa (cat)', 'Categoria / enfoque (sciname)', 'Evidencia', 'Ubicacion (loc)', 'Que se observa / que ocurre (role)', 'Por que es sintoma o por que importa (alert)', 'Actores', 'Pregunta guia', 'Fuente', 'Imagen (img, opcional)', 'Latitud', 'Longitud', 'Imagen 1 (tras la sub-red)', 'Imagen 2', 'Sugerencia de imagenes'], rowsN,
-    [10, 46, 28, 28, 26, 40, 80, 70, 40, 50, 60, 22, 11, 11, 30, 30, 50]);
+  const wsN = sheet('NODOS', ['ID', 'Nombre (name)', 'Capa (cat)', 'Categoria / enfoque (sciname)', 'Evidencia', 'Ubicacion (loc)', 'Que se observa / que ocurre (role)', 'Por que es sintoma o por que importa (alert)', 'Actores', 'Pregunta guia', 'Fuente', 'Imagen (img, opcional)', 'Latitud', 'Longitud', 'Imagen 1 (tras la sub-red)', 'Imagen 2', 'Sugerencia de imagenes', 'Icono (Font Awesome)'], rowsN,
+    [10, 46, 28, 28, 26, 40, 80, 70, 40, 50, 60, 22, 11, 11, 30, 30, 50, 26]);
   sheet('ARISTAS', ['ID', 'Origen (ID nodo)', 'Destino (ID nodo)', 'Tipo de relacion', 'Detalle del tipo', 'Justificacion causal (rationale)', 'Tension', 'Peso'],
     ED.map((e, i) => ['EDG-' + String(i + 1).padStart(2, '0'), 'NOD-' + e[0], 'NOD-' + e[1], T[e[2]], '', e[4], e[3], W[e[3]]]), [10, 14, 14, 34, 14, 90, 10, 7]);
   const ws = wb.addWorksheet('RED'); ws.addRow(['Clave', 'Valor']); ws.getRow(1).eachCell(c => Object.assign(c, HEAD));
