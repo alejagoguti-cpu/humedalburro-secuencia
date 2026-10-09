@@ -327,6 +327,7 @@ const ED = [
 
 const { S2, E2, ED2 } = require('./datos-sintomas-2');
 S.push(...S2); E.push(...E2); ED.push(...ED2);
+require('./correcciones-fuentes')(S, E, ED);
 
 // ---------- separar nodos muy cercanos para que no se superpongan en el mapa ----------
 const pts = []; const nodes = [...S.map(s => ({ s, kind: 'S' })), ...E.map(e => ({ e, kind: 'E' }))];
